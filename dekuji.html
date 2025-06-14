@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Děkujeme za poptávku!</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            /* ZMĚNA: Nové pozadí s logem */
+            background: #2e2e2e url('https://raw.githubusercontent.com/mo3delcz/online-kalkulacka/refs/heads/main/Mo3Delbili.png') center center / contain no-repeat fixed;
+            color: white;
+            text-align: center;
+        }
+        .container {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 40px 50px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 3px #000;
+        }
+        p {
+            font-size: 1.2em;
+            text-shadow: 1px 1px 3px #000;
+        }
+        a {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            /* ZMĚNA: Nové barvy odkazu podle loga */
+            background: linear-gradient(to right, #F86624, #00A1E4);
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: filter 0.2s;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        a:hover {
+            filter: brightness(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Děkujeme!</h1>
+        <p>Vaše poptávka byla úspěšně odeslána.<br>Brzy se vám ozveme s dalšími informacemi.</p>
+        <a href="./index.html">Zpět na kalkulačku</a>
+    </div>
+</body>
+</html>
