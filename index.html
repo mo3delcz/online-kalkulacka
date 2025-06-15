@@ -45,31 +45,11 @@
         #file-name.error-message { color: #ff8a8a; font-weight: bold; }
         .uploadcare--widget__button { display: none !important; }
 
-        /* ================================== */
-        /* === Responzivní design pro mobily === */
-        /* ================================== */
         @media (max-width: 780px) {
-            body {
-                padding: 10px 0; /* Menší okraj na mobilu */
-            }
-
-            /* Hlavní kontejnery se přizpůsobí šířce displeje */
-            .kalkulacka, .poptavka-box {
-                width: 95%;
-                padding: 15px;
-            }
-
-            /* Kontejnery pro sloupce změní směr na vertikální (pod sebe) */
-            .layout-top, .controls-bottom {
-                flex-direction: column;
-                align-items: center;
-                gap: 10px;
-            }
-
-            /* Jednotlivé sloupce se roztáhnou na plnou šířku */
-            .left-pane, .right-pane, .bottom-left, .bottom-right {
-                width: 100%;
-            }
+            body { padding: 10px 0; }
+            .kalkulacka, .poptavka-box { width: 95%; padding: 15px; }
+            .layout-top, .controls-bottom { flex-direction: column; align-items: center; gap: 10px; }
+            .left-pane, .right-pane, .bottom-left, .bottom-right { width: 100%; }
         }
     </style>
 </head>
@@ -273,13 +253,22 @@
         const customUploadButton = document.querySelector('.upload-label');
         customUploadButton.addEventListener('click', function(e) { e.preventDefault(); ucareWidget.openDialog(); });
         
-        const materialColors = { PLA: ['Černá','Šedá','Bílá','Fialová','Modrá','Zelená','Červená','Růžová','Oranžová','Žlutá','Mramor','WOOD filament'], PETG: ['Černá','Bílá'], ABS: ['Černá','Bílá'], TPU: ['Černá','Bílá','Modrá','Zelená','Červená','Oranžová','Žlutá'] };
+        // --- ZMĚNA DAT: Přidán NYLON a jeho barva ---
+        const materialColors = { 
+            PLA: ['Černá','Šedá','Bílá','Fialová','Modrá','Zelená','Červená','Růžová','Oranžová','Žlutá','Mramor','WOOD filament'], 
+            PETG: ['Černá','Bílá'], 
+            ABS: ['Černá','Bílá'], 
+            TPU: ['Černá','Bílá','Modrá','Zelená','Červená','Oranžová','Žlutá'],
+            'NYLON-PA12 CF15': ['Černá']
+        };
         const colorMap = { 'Černá': 0x111111, 'Šedá': 0x666666, 'Bílá': 0xffffff, 'Fialová': 0x800080, 'Modrá': 0x0000ff, 'Zelená': 0x228B22, 'Červená': 0xff0000, 'Žlutá': 0xffff00, 'Oranžová': 0xff6600, 'Růžová': 0xFF69B4, 'Mramor': 0x999999, 'WOOD filament': 0x654321 };
+        
         const materialSelect = document.getElementById('material');
         const colorSelect = document.getElementById('barva');
         const countSelect = document.getElementById('pocet-kusu');
         for (let i = 1; i <= 20; i++) { const opt = document.createElement('option'); opt.value = i; opt.textContent = i; countSelect.appendChild(opt); }
-        ['PLA','PETG','ABS','TPU'].forEach(mat => { const opt = document.createElement('option'); opt.value = mat; opt.textContent = mat; materialSelect.appendChild(opt); });
+        // Přidán NYLON do výběru
+        ['PLA','PETG','ABS','TPU', 'NYLON-PA12 CF15'].forEach(mat => { const opt = document.createElement('option'); opt.value = mat; opt.textContent = mat; materialSelect.appendChild(opt); });
         
         function refreshColors() { colorSelect.innerHTML = ''; (materialColors[materialSelect.value] || []).forEach(color => { const opt = document.createElement('option'); opt.value = color; opt.textContent = color; colorSelect.appendChild(opt); }); if (mesh) updateColor(); }
         
@@ -303,7 +292,8 @@
 
             document.getElementById('result-bg').classList.add('viewer-bg-gray');
 
-            const densities = { PLA: 1.24, PETG: 1.27, ABS: 1.04, TPU: 1.21 };
+            // --- ZMĚNA DAT: Přidána hustota pro NYLON ---
+            const densities = { PLA: 1.24, PETG: 1.27, ABS: 1.04, TPU: 1.21, 'NYLON-PA12 CF15': 1.10 };
             const material = materialSelect.value;
             const infillPercent = parseFloat(document.getElementById('pevnost').value);
             const count = parseInt(document.getElementById('pocet-kusu').value) || 1;
@@ -325,6 +315,26 @@
             const supportMass = supportVolume * densities[material];
             const totalMassPerPiece = modelMass + supportMass;
             const totalMass = totalMassPerPiece * count;
+
+            // --- KOMPLETNĚ NOVÁ LOGIKA PRO CENOTVORBU ---
+            let cenaZaGram;
+            if (material === 'NYLON-PA12 CF15') {
+                cenaZaGram = 16;
+            } else {
+                let baseCena;
+                if (supportMass <= 30) {
+                    baseCena = 2;
+                } else if (supportMass > 30 && supportMass <= 60) {
+                    baseCena = 3;
+                } else { // supportMass > 60
+                    baseCena = 4;
+                }
+                
+                cenaZaGram = baseCena + (material === 'ABS' ? 1 : 0);
+            }
+            const castka = totalMass * cenaZaGram;
+            // --- KONEC NOVÉ LOGIKY ---
+
             const totalVolumeToExtrudeCm3 = (finalModelVolumeCm3 + supportVolume) * count;
             const extrusionCrossSectionMm2 = extrusionWidth * layerHeight;
             const lengthOfExtrudedFilamentMm = (totalVolumeToExtrudeCm3 * 1000) / extrusionCrossSectionMm2;
@@ -333,8 +343,6 @@
             const layerChangeTimeSeconds = numberOfLayers * timePerLayerChange * count;
             const totalTimeSeconds = extrusionTimeSeconds + layerChangeTimeSeconds;
             const totalTimeMinutes = totalTimeSeconds / 60;
-            const cenaZaGram = (material === 'ABS') ? 5 : 4;
-            const castka = totalMass * cenaZaGram;
             
             const allResultElements = document.querySelectorAll('.result-text p');
             allResultElements.forEach(el => { el.style.display = 'block'; });
@@ -350,11 +358,11 @@
             document.getElementById('vypocet-cas').textContent = `Odhadovaný čas tisku: ${finalTimeText}`;
             const finalTimeTextJokes = formatTime(totalTimeMinutes / count);
             const jokes = ['ale tiskne se sousedovi držák.', 'ale robot v kuchyni připravuje kafe.', 'ale nejsem doma.', 'ale před tebou je fronta jak na poště.', 'ale dnes je moc teplo.'];
-            document.getElementById('vtipna-veta').textContent = `Tisk jednoho kusu trvá ${finalTimeTextJokes}, ${jokes[Math.floor(Math.random() * jokes.length)]}`;
+            document.getElementById('vtipna-veta').textContent = `Tisk sice trvá ${finalTimeTextJokes}, ${jokes[Math.floor(Math.random() * jokes.length)]}`;
             
             const pevnostSelect = document.getElementById('pevnost');
             const pevnostText = pevnostSelect.options[pevnostSelect.selectedIndex].text;
-            document.getElementById('rekapitulace').value = `Jméno: ${document.querySelector('input[name="jmeno"]').value}\nEmail: ${document.querySelector('input[name="email"]').value}\n---\nModel: ${uploadedFileName}\nOdkaz na model: ${uploadedFileUrl}\nHmotnost modelu: ${modelMass.toFixed(2)} g\nHmotnost podpor (odhad): ${supportMass.toFixed(2)} g\nCelková hmotnost/ks: ${totalMassPerPiece.toFixed(2)} g\nOdhadovaná cena: ${castka.toFixed(2)} Kč\nOdhadovaný čas/ks: ${formatTime(totalTimeMinutes / count)}\nRozměr: ${meshSize.x.toFixed(1)} × ${meshSize.y.toFixed(1)} × ${meshSize.z.toFixed(1)} mm\nMateriál: ${materialSelect.value}\nBarva: ${colorSelect.value}\nPevnost: ${pevnostText}\nPočet kusů: ${count}`;
+            document.getElementById('rekapitulace').value = `Jméno: ${document.querySelector('input[name="jmeno"]').value}\nEmail: ${document.querySelector('input[name="email"]').value}\n---\nModel: ${uploadedFileName}\nOdkaz na model: ${uploadedFileUrl}\nHmotnost modelu: ${modelMass.toFixed(2)} g\nHmotnost podpor (odhad): ${supportMass.toFixed(2)} g\nCelková hmotnost/ks: ${totalMassPerPiece.toFixed(2)} g\nCena za gram: ${cenaZaGram.toFixed(2)} Kč\nOdhadovaná cena: ${castka.toFixed(2)} Kč\nOdhadovaný čas/ks: ${formatTime(totalTimeMinutes / count)}\nRozměr: ${meshSize.x.toFixed(1)} × ${meshSize.y.toFixed(1)} × ${meshSize.z.toFixed(1)} mm\nMateriál: ${materialSelect.value}\nBarva: ${colorSelect.value}\nPevnost: ${pevnostText}\nPočet kusů: ${count}`;
         });
 
         const poptavkaForm = document.getElementById('poptavka-form');
